@@ -29,10 +29,10 @@ module.exports = async function handler(request, response) {
     const redirectUri = `${getOrigin(request)}/api/auth/kakao/callback`;
     const accessToken = await exchangeKakaoCode({ code, redirectUri });
     const kakaoUser = await fetchKakaoUser(accessToken);
-    const user = await getOrCreateUser(kakaoUser);
+    await getOrCreateUser(kakaoUser).catch(() => null);
 
     clearOauthStateCookie(request, response);
-    setSessionCookie(request, response, user);
+    setSessionCookie(request, response, kakaoUser);
     redirect(response, getHomeRedirect(request));
   } catch (error) {
     clearOauthStateCookie(request, response);

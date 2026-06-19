@@ -1,6 +1,7 @@
 function json(response, statusCode, payload) {
   response.status(statusCode);
   response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
   response.send(JSON.stringify(payload));
 }
 

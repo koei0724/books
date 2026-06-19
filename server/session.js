@@ -8,10 +8,11 @@ const OAUTH_STATE_MAX_AGE_SECONDS = 60 * 10;
 
 function createSessionValue(user) {
   const now = Math.floor(Date.now() / 1000);
+  const kakaoId = String(user.kakaoId || "");
   return signJson(
     {
-      sub: user.id,
-      kakaoId: user.kakaoId,
+      sub: String(user.id || kakaoId),
+      kakaoId,
       nickname: user.nickname || "",
       iat: now,
       exp: now + SESSION_MAX_AGE_SECONDS,

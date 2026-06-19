@@ -1,18 +1,29 @@
 const { handleApiError, json, methodNotAllowed } = require("../server/http");
-const { createBook, deleteBook, listBooks, updateBook } = require("../server/supabase");
+const { createBook, deleteBook, getOrCreateUser, listBooks, updateBook } = require("../server/supabase");
 const { requireSession } = require("../server/session");
 
 module.exports = async function handler(request, response) {
   try {
     const session = requireSession(request);
+    if (!session.kakaoId) {
+      const error = new Error("Missing Kakao session");
+      error.statusCode = 401;
+      error.publicMessage = "다시 로그인해 주세요.";
+      throw error;
+    }
+
+    const user = await getOrCreateUser({
+      kakaoId: session.kakaoId,
+      nickname: session.nickname,
+    });
 
     if (request.method === "GET") {
-      json(response, 200, { books: await listBooks(session.id) });
+      json(response, 200, { books: await listBooks(user.id) });
       return;
     }
 
     if (request.method === "POST") {
-      json(response, 201, { book: await createBook(session.id, getBody(request)) });
+      json(response, 201, { book: await createBook(user.id, getBody(request)) });
       return;
     }
 
@@ -20,14 +31,14 @@ module.exports = async function handler(request, response) {
       const body = getBody(request);
       const bookKey = String(request.query.id || body.id || "");
       requireBookKey(bookKey);
-      json(response, 200, { book: await updateBook(session.id, bookKey, body) });
+      json(response, 200, { book: await updateBook(user.id, bookKey, body) });
       return;
     }
 
     if (request.method === "DELETE") {
       const bookKey = String(request.query.id || "");
       requireBookKey(bookKey);
-      await deleteBook(session.id, bookKey);
+      await deleteBook(user.id, bookKey);
       json(response, 200, { ok: true });
       return;
     }

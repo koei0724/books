@@ -952,7 +952,7 @@ function renderAuthState() {
 }
 
 async function fetchCurrentUser() {
-  const response = await fetch("/api/me");
+  const response = await fetch("/api/me", { cache: "no-store" });
   if (!response.ok) return null;
   return response.json();
 }
