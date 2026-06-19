@@ -27,12 +27,28 @@ module.exports = async function handler(request, response) {
     }
 
     const redirectUri = `${getOrigin(request)}/api/auth/kakao/callback`;
-    const accessToken = await exchangeKakaoCode({ code, redirectUri });
-    const kakaoUser = await fetchKakaoUser(accessToken);
+    const accessToken = await exchangeKakaoCode({ code, redirectUri }).catch(() => "");
+    if (!accessToken) {
+      redirect(response, getHomeRedirect(request, "?auth_error=token"));
+      return;
+    }
+
+    const kakaoUser = await fetchKakaoUser(accessToken).catch(() => null);
+    if (!kakaoUser?.kakaoId) {
+      redirect(response, getHomeRedirect(request, "?auth_error=user"));
+      return;
+    }
+
     await getOrCreateUser(kakaoUser).catch(() => null);
 
     clearOauthStateCookie(request, response);
-    setSessionCookie(request, response, kakaoUser);
+    try {
+      setSessionCookie(request, response, kakaoUser);
+    } catch (error) {
+      redirect(response, getHomeRedirect(request, "?auth_error=session"));
+      return;
+    }
+
     redirect(response, getHomeRedirect(request));
   } catch (error) {
     clearOauthStateCookie(request, response);

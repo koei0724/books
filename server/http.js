@@ -12,6 +12,7 @@ function methodNotAllowed(response, allowedMethods) {
 
 function redirect(response, location, statusCode = 302) {
   response.statusCode = statusCode;
+  response.setHeader("Cache-Control", "no-store");
   response.setHeader("Location", location);
   response.end();
 }
@@ -25,8 +26,8 @@ function getOrigin(request) {
   return `${String(protocol).split(",")[0]}://${String(host).split(",")[0]}`;
 }
 
-function getHomeRedirect(request, suffix = "") {
-  return `${getOrigin(request)}/#shelf${suffix}`;
+function getHomeRedirect(request, query = "") {
+  return `${getOrigin(request)}/${query}#shelf`;
 }
 
 function handleApiError(response, error, fallbackMessage = "Request failed") {
