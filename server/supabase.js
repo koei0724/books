@@ -143,18 +143,13 @@ async function supabaseRequest(path, options = {}) {
 }
 
 function getSupabaseHeaders(key, headers = {}) {
-  const baseHeaders = {
+  return {
     apikey: key,
+    Authorization: `Bearer ${key}`,
     Accept: "application/json",
     "Content-Type": "application/json",
     ...headers,
   };
-
-  if (!key.startsWith("sb_secret_")) {
-    baseHeaders.Authorization = `Bearer ${key}`;
-  }
-
-  return baseHeaders;
 }
 
 function parseJson(value) {

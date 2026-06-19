@@ -193,13 +193,18 @@ async function initAuth() {
     renderAuthState();
 
     if (!currentUser) return;
+  } catch (error) {
+    currentUser = null;
+    renderAuthState();
+    return;
+  }
 
+  try {
     await importGuestShelf();
     shelfBooks = await fetchRemoteShelf();
     renderShelf();
   } catch (error) {
-    currentUser = null;
-    renderAuthState();
+    setStatus("로그인은 되었지만 서재 데이터를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.");
   }
 }
 
