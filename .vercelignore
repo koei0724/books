@@ -1,0 +1,8 @@
+.playwright-mcp
+reading-shelf-*.png
+stitch-reference
+.DS_Store
+.env
+.env.*
+skills
+supabase

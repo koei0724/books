@@ -1,0 +1,4 @@
+interface:
+  display_name: "독서 기록 서재 웹"
+  short_description: "독서 서재 웹앱을 만들고 검증"
+  default_prompt: "$reading-shelf-web를 사용해서 이 한국어 독서 기록 웹앱을 개선하고 검증해줘."
