@@ -7,9 +7,16 @@ const searchInput = document.querySelector("#search-input");
 const resultsList = document.querySelector("#results-list");
 const statusLine = document.querySelector("#status-line");
 const searchCount = document.querySelector("#search-count");
-const shelfGrid = document.querySelector("#shelf-grid");
+const shelfPanel = document.querySelector("#shelf-panel");
+const shelfSections = document.querySelector("#shelf-sections");
+const readingGrid = document.querySelector("#reading-grid");
+const completedGrid = document.querySelector("#completed-grid");
 const shelfCount = document.querySelector("#shelf-count");
+const readingCount = document.querySelector("#reading-count");
+const completedCount = document.querySelector("#completed-count");
 const emptyShelf = document.querySelector("#empty-shelf");
+const emptyReading = document.querySelector("#empty-reading");
+const emptyCompleted = document.querySelector("#empty-completed");
 const pageViews = document.querySelectorAll("[data-page]");
 const routeLinks = document.querySelectorAll("[data-route-link]");
 const pageEyebrow = document.querySelector("#page-eyebrow");
@@ -110,7 +117,7 @@ resultsList.addEventListener("click", async (event) => {
   await addToShelf(book);
 });
 
-shelfGrid.addEventListener("click", (event) => {
+shelfPanel.addEventListener("click", (event) => {
   const item = event.target.closest("[data-book-id]");
   if (!item) return;
 
@@ -711,20 +718,40 @@ function createResultButton(book) {
 }
 
 function renderShelf() {
-  const sortedBooks = getSortedShelfBooks();
+  const { readingBooks, completedBooks } = getGroupedShelfBooks();
+
   shelfCount.textContent = `${shelfBooks.length}권`;
+  readingCount.textContent = `${readingBooks.length}권`;
+  completedCount.textContent = `${completedBooks.length}권`;
+  shelfSections.hidden = shelfBooks.length === 0;
   emptyShelf.classList.toggle("is-visible", shelfBooks.length === 0);
-  shelfGrid.replaceChildren(...sortedBooks.map(createShelfButton));
+  emptyReading.classList.toggle("is-visible", shelfBooks.length > 0 && readingBooks.length === 0);
+  emptyCompleted.classList.toggle("is-visible", shelfBooks.length > 0 && completedBooks.length === 0);
+  readingGrid.replaceChildren(...readingBooks.map(createShelfButton));
+  completedGrid.replaceChildren(...completedBooks.map(createShelfButton));
 }
 
-function getSortedShelfBooks() {
-  return shelfBooks
-    .map((book, index) => ({ book, index }))
-    .sort(compareShelfEntries)
-    .map((entry) => entry.book);
+function getGroupedShelfBooks() {
+  const entries = shelfBooks.map((book, index) => ({ book, index }));
+
+  return {
+    readingBooks: entries
+      .filter((entry) => !isBookCompleted(entry.book))
+      .sort(compareActiveShelfEntries)
+      .map((entry) => entry.book),
+    completedBooks: entries
+      .filter((entry) => isBookCompleted(entry.book))
+      .sort(compareCompletedShelfEntries)
+      .map((entry) => entry.book),
+  };
 }
 
-function compareShelfEntries(a, b) {
+function compareActiveShelfEntries(a, b) {
+  const addedTimeDiff = getTimestamp(b.book.addedAt) - getTimestamp(a.book.addedAt);
+  return addedTimeDiff || a.index - b.index;
+}
+
+function compareCompletedShelfEntries(a, b) {
   const aReadTime = getReadDateTime(a.book.readDate);
   const bReadTime = getReadDateTime(b.book.readDate);
 

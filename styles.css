@@ -90,11 +90,13 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--primary);
   background: var(--background);
   font-family: var(--font-body);
@@ -108,6 +110,7 @@ textarea {
 
 button {
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 button:focus-visible,
@@ -154,7 +157,7 @@ dd {
   align-items: center;
   width: 100%;
   min-height: 56px;
-  padding: 0 18px;
+  padding: 0 max(18px, env(safe-area-inset-right)) 0 max(18px, env(safe-area-inset-left));
   border-bottom: 1px solid rgba(218, 218, 218, 0.78);
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(14px);
@@ -213,7 +216,7 @@ dd {
   place-items: center;
   justify-self: end;
   min-width: 58px;
-  min-height: 34px;
+  min-height: 38px;
   padding: 0 12px;
   border: 1px solid var(--primary);
   border-radius: 0;
@@ -232,7 +235,8 @@ dd {
 .app-shell {
   width: min(1180px, 100%);
   margin: 0 auto;
-  padding: 30px 24px 72px;
+  padding: 30px max(24px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
 }
 
 .top-panel {
@@ -341,6 +345,7 @@ h1 {
   outline: 0;
   color: var(--primary);
   background: transparent;
+  font-size: 1rem;
 }
 
 .search-box input::placeholder {
@@ -398,7 +403,30 @@ h1 {
   margin-bottom: 18px;
 }
 
+.shelf-sections {
+  display: grid;
+  gap: 42px;
+}
+
+.shelf-section {
+  min-width: 0;
+}
+
+.shelf-section + .shelf-section {
+  padding-top: 30px;
+  border-top: 1px solid var(--outline-variant);
+}
+
+.shelf-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
 .panel-heading h2,
+.shelf-section-heading h3,
 .journal-heading h3 {
   margin-top: 5px;
   font-family: var(--font-headline);
@@ -595,6 +623,11 @@ h1 {
 
 .empty-state.is-visible {
   display: grid;
+}
+
+.section-empty {
+  min-height: 150px;
+  margin-top: 0;
 }
 
 .text-link {
@@ -947,11 +980,16 @@ h1 {
 
 @media (max-width: 960px) {
   .app-shell {
-    padding: 24px 18px 64px;
+    padding: 24px max(18px, env(safe-area-inset-right)) calc(64px + env(safe-area-inset-bottom))
+      max(18px, env(safe-area-inset-left));
   }
 
   .top-panel {
     grid-template-columns: 1fr;
+  }
+
+  .page-switch {
+    width: min(440px, 100%);
   }
 
   .page-view {
@@ -961,24 +999,77 @@ h1 {
 
 @media (max-width: 680px) {
   .app-bar {
-    padding: 0 8px;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    min-height: 54px;
+    padding: 0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left));
+  }
+
+  .app-title {
+    max-width: 11rem;
+    overflow: hidden;
+    font-size: 0.82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .icon-button,
+  .toolbar-button {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .icon-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .auth-controls {
+    gap: 5px;
+  }
+
+  .auth-user {
+    display: none;
+  }
+
+  .auth-button {
+    min-width: 54px;
+    min-height: 34px;
+    padding: 0 10px;
+    font-size: 0.72rem;
   }
 
   .app-shell {
-    padding: 22px 16px 72px;
+    padding: 20px max(14px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom))
+      max(14px, env(safe-area-inset-left));
   }
 
   .top-panel {
-    gap: 18px;
-    padding-bottom: 26px;
+    gap: 16px;
+    padding-bottom: 22px;
   }
 
   h1 {
-    font-size: 2.25rem;
+    font-size: 2.05rem;
+    line-height: 1.08;
+  }
+
+  .page-summary {
+    margin-top: 10px;
+    font-size: 0.88rem;
+    line-height: 1.5;
   }
 
   .search-box {
-    grid-template-columns: 38px minmax(0, 1fr) 70px;
+    grid-template-columns: 38px minmax(0, 1fr) 66px;
+    min-height: 54px;
+  }
+
+  .search-box input {
+    height: 52px;
+  }
+
+  .search-box button {
+    min-width: 66px;
   }
 
   .date-choice {
@@ -992,51 +1083,122 @@ h1 {
   }
 
   .page-switch {
+    width: 100%;
+    min-height: 52px;
+  }
+
+  .route-tab {
     min-height: 52px;
   }
 
   .panel-heading h2,
+  .shelf-section-heading h3,
   .journal-heading h3 {
     font-size: 1.45rem;
   }
 
+  .shelf-sections {
+    gap: 34px;
+  }
+
+  .shelf-section + .shelf-section {
+    padding-top: 26px;
+  }
+
+  .search-meta {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .status-line {
+    font-size: 0.8rem;
+  }
+
+  .result-item {
+    grid-template-columns: 50px minmax(0, 1fr);
+    gap: 12px;
+    min-height: 88px;
+  }
+
   .shelf-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px 14px;
+    gap: 26px 14px;
   }
 
   .book-dialog {
-    width: calc(100vw - 18px);
-    max-height: calc(100vh - 18px);
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 100dvh;
+    margin: 0;
+  }
+
+  .dialog-frame {
+    min-height: 100dvh;
+    border: 0;
   }
 
   .dialog-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     grid-template-columns: 92px 1fr 52px;
-    padding: 0 8px;
+    padding: 0 max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
+    background: var(--surface);
   }
 
   .dialog-layout {
     grid-template-columns: 1fr;
     gap: 28px;
-    padding: 26px 16px 18px;
+    max-height: calc(100dvh - 54px);
+    padding: 24px max(16px, env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
   }
 
   .detail-cover-wrap {
-    width: min(190px, 64vw);
+    width: min(176px, 56vw);
+    margin-bottom: 18px;
   }
 
   .detail-title {
-    font-size: 1.8rem;
+    max-width: 18ch;
+    font-size: 1.7rem;
+    line-height: 1.12;
+  }
+
+  .detail-stats {
+    margin-top: 22px;
+  }
+
+  .date-choice input[type="date"],
+  .date-unknown-option {
+    min-height: 50px;
   }
 
   .field textarea {
-    min-height: 220px;
+    min-height: 190px;
   }
 }
 
 @media (max-width: 390px) {
+  .app-bar {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+  }
+
+  .app-title {
+    max-width: 8.6rem;
+  }
+
+  .auth-button {
+    min-width: 48px;
+    padding: 0 8px;
+  }
+
+  h1 {
+    font-size: 1.88rem;
+  }
+
   .search-box {
-    grid-template-columns: 34px minmax(0, 1fr) 62px;
+    grid-template-columns: 34px minmax(0, 1fr) 58px;
   }
 
   .route-tab {
@@ -1047,6 +1209,14 @@ h1 {
 
   .search-box button {
     font-size: 0.82rem;
+  }
+
+  .shelf-grid {
+    gap: 24px 12px;
+  }
+
+  .book-title {
+    font-size: 0.76rem;
   }
 
   .dialog-actions {
