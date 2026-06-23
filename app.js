@@ -11,7 +11,6 @@ const shelfPanel = document.querySelector("#shelf-panel");
 const shelfSections = document.querySelector("#shelf-sections");
 const readingGrid = document.querySelector("#reading-grid");
 const completedGrid = document.querySelector("#completed-grid");
-const shelfCount = document.querySelector("#shelf-count");
 const readingCount = document.querySelector("#reading-count");
 const completedCount = document.querySelector("#completed-count");
 const emptyShelf = document.querySelector("#empty-shelf");
@@ -720,7 +719,6 @@ function createResultButton(book) {
 function renderShelf() {
   const { readingBooks, completedBooks } = getGroupedShelfBooks();
 
-  shelfCount.textContent = `${shelfBooks.length}권`;
   readingCount.textContent = `${readingBooks.length}권`;
   completedCount.textContent = `${completedBooks.length}권`;
   shelfSections.hidden = shelfBooks.length === 0;
