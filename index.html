@@ -51,7 +51,7 @@
 
       <section class="page-view" data-page="shelf" aria-label="내 서재">
         <section id="shelf-panel" class="shelf-panel" aria-label="내 서재 목록">
-          <div id="shelf-sections" class="shelf-sections">
+          <div id="shelf-sections" class="shelf-sections" hidden>
             <section class="shelf-section" aria-labelledby="reading-heading">
               <div class="shelf-section-heading">
                 <div>
@@ -79,6 +79,14 @@
                 <p>아직 읽은 책이 없습니다.</p>
               </div>
             </section>
+          </div>
+          <div id="shelf-loading" class="loading-state" role="status" aria-live="polite">
+            <div class="loading-covers" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <p>서재를 불러오는 중입니다.</p>
           </div>
           <div id="empty-shelf" class="empty-state">
             <p>아직 꽂힌 책이 없습니다.</p>

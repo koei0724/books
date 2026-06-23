@@ -16,6 +16,7 @@ const completedCount = document.querySelector("#completed-count");
 const emptyShelf = document.querySelector("#empty-shelf");
 const emptyReading = document.querySelector("#empty-reading");
 const emptyCompleted = document.querySelector("#empty-completed");
+const shelfLoading = document.querySelector("#shelf-loading");
 const pageViews = document.querySelectorAll("[data-page]");
 const routeLinks = document.querySelectorAll("[data-route-link]");
 const pageEyebrow = document.querySelector("#page-eyebrow");
@@ -45,6 +46,7 @@ const dialogCloseButtons = document.querySelectorAll("[data-dialog-close]");
 let shelfBooks = readShelf();
 let currentUser = null;
 let activeBookId = null;
+let isShelfLoading = true;
 let lastResults = [];
 let lastSearchSources = {
   googleBooks: false,
@@ -193,24 +195,31 @@ logoutButton.addEventListener("click", async () => {
 });
 
 async function initAuth() {
+  setShelfLoading(true);
+
   try {
     const session = await fetchCurrentUser();
     currentUser = session?.authenticated ? session.user : null;
     renderAuthState();
 
-    if (!currentUser) return;
+    if (!currentUser) {
+      setShelfLoading(false);
+      return;
+    }
   } catch (error) {
     currentUser = null;
     renderAuthState();
+    setShelfLoading(false);
     return;
   }
 
   try {
     await importGuestShelf();
     shelfBooks = await fetchRemoteShelf();
-    renderShelf();
   } catch (error) {
     setStatus("로그인은 되었지만 서재 데이터를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.");
+  } finally {
+    setShelfLoading(false);
   }
 }
 
@@ -721,12 +730,26 @@ function renderShelf() {
 
   readingCount.textContent = `${readingBooks.length}권`;
   completedCount.textContent = `${completedBooks.length}권`;
-  shelfSections.hidden = shelfBooks.length === 0;
-  emptyShelf.classList.toggle("is-visible", shelfBooks.length === 0);
-  emptyReading.classList.toggle("is-visible", shelfBooks.length > 0 && readingBooks.length === 0);
-  emptyCompleted.classList.toggle("is-visible", shelfBooks.length > 0 && completedBooks.length === 0);
+  shelfPanel.setAttribute("aria-busy", isShelfLoading ? "true" : "false");
+  shelfLoading.hidden = !isShelfLoading;
+  shelfSections.hidden = isShelfLoading || shelfBooks.length === 0;
+  emptyShelf.classList.toggle("is-visible", !isShelfLoading && shelfBooks.length === 0);
+  emptyReading.classList.toggle("is-visible", !isShelfLoading && shelfBooks.length > 0 && readingBooks.length === 0);
+  emptyCompleted.classList.toggle("is-visible", !isShelfLoading && shelfBooks.length > 0 && completedBooks.length === 0);
+
+  if (isShelfLoading) {
+    readingGrid.replaceChildren();
+    completedGrid.replaceChildren();
+    return;
+  }
+
   readingGrid.replaceChildren(...readingBooks.map(createShelfButton));
   completedGrid.replaceChildren(...completedBooks.map(createShelfButton));
+}
+
+function setShelfLoading(isLoading) {
+  isShelfLoading = isLoading;
+  renderShelf();
 }
 
 function getGroupedShelfBooks() {
