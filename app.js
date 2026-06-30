@@ -1,6 +1,8 @@
 const STORAGE_KEY = "reading-shelf.books.v1";
 const OPEN_LIBRARY_LIMIT = 30;
 const GOOGLE_BOOKS_LIMIT = 40;
+const SHELF_FETCH_RETRY_COUNT = 2;
+const SHELF_FETCH_RETRY_DELAY_MS = 600;
 
 const form = document.querySelector("#search-form");
 const searchInput = document.querySelector("#search-input");
@@ -17,6 +19,8 @@ const emptyShelf = document.querySelector("#empty-shelf");
 const emptyReading = document.querySelector("#empty-reading");
 const emptyCompleted = document.querySelector("#empty-completed");
 const shelfLoading = document.querySelector("#shelf-loading");
+const shelfError = document.querySelector("#shelf-error");
+const retryShelfButton = document.querySelector("#retry-shelf");
 const pageViews = document.querySelectorAll("[data-page]");
 const routeLinks = document.querySelectorAll("[data-route-link]");
 const pageEyebrow = document.querySelector("#page-eyebrow");
@@ -47,6 +51,7 @@ let shelfBooks = readShelf();
 let currentUser = null;
 let activeBookId = null;
 let isShelfLoading = true;
+let shelfLoadError = "";
 let lastResults = [];
 let lastSearchSources = {
   googleBooks: false,
@@ -190,8 +195,13 @@ logoutButton.addEventListener("click", async () => {
   await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
   currentUser = null;
   shelfBooks = readShelf();
+  shelfLoadError = "";
   renderAuthState();
   renderShelf();
+});
+
+retryShelfButton.addEventListener("click", async () => {
+  await loadAuthenticatedShelf();
 });
 
 async function initAuth() {
@@ -203,21 +213,32 @@ async function initAuth() {
     renderAuthState();
 
     if (!currentUser) {
+      shelfLoadError = "";
       setShelfLoading(false);
       return;
     }
   } catch (error) {
     currentUser = null;
     renderAuthState();
+    shelfLoadError = "";
     setShelfLoading(false);
     return;
   }
 
+  await loadAuthenticatedShelf();
+}
+
+async function loadAuthenticatedShelf() {
+  if (!currentUser) return;
+
+  shelfLoadError = "";
+  setShelfLoading(true);
+
   try {
-    await importGuestShelf();
-    shelfBooks = await fetchRemoteShelf();
+    await importGuestShelfSafely();
+    shelfBooks = await fetchRemoteShelfWithRetry();
   } catch (error) {
-    setStatus("로그인은 되었지만 서재 데이터를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.");
+    shelfLoadError = "서재 데이터를 불러오지 못했습니다. 다시 불러오기를 눌러 주세요.";
   } finally {
     setShelfLoading(false);
   }
@@ -727,17 +748,25 @@ function createResultButton(book) {
 
 function renderShelf() {
   const { readingBooks, completedBooks } = getGroupedShelfBooks();
+  const hasShelfLoadError = Boolean(shelfLoadError);
 
   readingCount.textContent = `${readingBooks.length}권`;
   completedCount.textContent = `${completedBooks.length}권`;
   shelfPanel.setAttribute("aria-busy", isShelfLoading ? "true" : "false");
   shelfLoading.hidden = !isShelfLoading;
-  shelfSections.hidden = isShelfLoading || shelfBooks.length === 0;
-  emptyShelf.classList.toggle("is-visible", !isShelfLoading && shelfBooks.length === 0);
-  emptyReading.classList.toggle("is-visible", !isShelfLoading && shelfBooks.length > 0 && readingBooks.length === 0);
-  emptyCompleted.classList.toggle("is-visible", !isShelfLoading && shelfBooks.length > 0 && completedBooks.length === 0);
+  shelfSections.hidden = isShelfLoading || hasShelfLoadError || shelfBooks.length === 0;
+  shelfError.classList.toggle("is-visible", !isShelfLoading && hasShelfLoadError);
+  emptyShelf.classList.toggle("is-visible", !isShelfLoading && !hasShelfLoadError && shelfBooks.length === 0);
+  emptyReading.classList.toggle(
+    "is-visible",
+    !isShelfLoading && !hasShelfLoadError && shelfBooks.length > 0 && readingBooks.length === 0
+  );
+  emptyCompleted.classList.toggle(
+    "is-visible",
+    !isShelfLoading && !hasShelfLoadError && shelfBooks.length > 0 && completedBooks.length === 0
+  );
 
-  if (isShelfLoading) {
+  if (isShelfLoading || hasShelfLoadError) {
     readingGrid.replaceChildren();
     completedGrid.replaceChildren();
     return;
@@ -1015,6 +1044,10 @@ async function fetchRemoteShelf() {
   return Array.isArray(data.books) ? data.books : [];
 }
 
+async function fetchRemoteShelfWithRetry() {
+  return retryRequest(fetchRemoteShelf, SHELF_FETCH_RETRY_COUNT);
+}
+
 async function createRemoteBook(book) {
   const data = await requestJson("/api/books", {
     method: "POST",
@@ -1039,7 +1072,7 @@ async function deleteRemoteBook(bookId) {
 
 async function importGuestShelf() {
   const guestBooks = readShelf();
-  if (!guestBooks.length) return;
+  if (!Array.isArray(guestBooks) || !guestBooks.length) return;
 
   const results = await Promise.allSettled(guestBooks.map((book) => createRemoteBook(book)));
   if (results.every((result) => result.status === "fulfilled")) {
@@ -1047,9 +1080,46 @@ async function importGuestShelf() {
   }
 }
 
+async function importGuestShelfSafely() {
+  try {
+    await importGuestShelf();
+  } catch (error) {
+    console.warn("Guest shelf import failed", error);
+  }
+}
+
+async function retryRequest(requester, retryCount) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= retryCount; attempt += 1) {
+    try {
+      return await requester();
+    } catch (error) {
+      lastError = error;
+      if (attempt === retryCount || !shouldRetryRequest(error)) break;
+      await delay(SHELF_FETCH_RETRY_DELAY_MS * (attempt + 1));
+    }
+  }
+
+  throw lastError;
+}
+
+function shouldRetryRequest(error) {
+  if (!error?.status) return true;
+  return error.status === 408 || error.status === 429 || error.status >= 500;
+}
+
+function delay(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
 async function requestJson(url, options = {}) {
   const response = await fetch(url, {
     ...options,
+    cache: "no-store",
+    credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
